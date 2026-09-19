@@ -21,8 +21,6 @@
     - [ ] `sculk add id-system@1.0.0/26.2` <- 1.0.0 version of 26.2 GameVer.
     - [ ] `sculk add id-system@/26.2` <- latest library for 26.2 GameVer.
     - [ ] `sculk add id-system@latest` <- same as `sculk add id-system`; if --ignore flag used, downloads from latest GameVer.
-- [ ] Add GameVer updating to port datapacks;
-    - [ ] `sculk update --project` <- updates entire project to a provided version. 
 
 - [X] ~~Handle library versioning, updating.~~
 - [X] ~~An 'uninstall' command to remove files without causing conflicts.~~
