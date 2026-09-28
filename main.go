@@ -5,8 +5,10 @@ package main
 
 import (
 	"sculk-cli/cmd"
+	"sculk-cli/src/commands/config"
 )
 
 func main() {
+	config.ConfigExists()
 	cmd.Execute()
 }
