@@ -5,14 +5,18 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-
 	"charm.land/log/v2"
 )
 
 type Config struct {
 	DoMerge bool			`json:"doMerge"`
 	Author Author			`json:"author"`
+	Sculk SculkVersioning 	`json:"sculk"`
 	InitTemplate string		`json:"initTemplate"`
+}
+
+type SculkVersioning struct {
+	Version string 			`json:"version"`
 }
 
 type Author struct {
@@ -36,6 +40,7 @@ func InitConfig() {
 		Author: Author{
 			Name: "Sculk Author",	// Author Name
 		},
+		Sculk: SculkVersioning{Version: "1.0.0"},
 		InitTemplate: "none",		// Init Template, incase other people have different file-structure practices.
 	}
 
