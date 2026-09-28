@@ -14,8 +14,8 @@
 - [ ] Add 'config' command.
     - [ ] Add option to install modules in a seperate datapack (no merging).
         - [ ] `sculk config doMerge true/false`
-    - [ ] Add default author-name.
-        - [ ] `sculk config author [authorNameString]`
+    - [X] Add default author-name.
+        - [X] `sculk config author [authorNameString]`
 - [ ] Add particular version installation via searching branches 
     - [ ] `sculk add id-system@1.0.0` <- 1.0.0 version, current GameVer.
     - [ ] `sculk add id-system@1.0.0/26.2` <- 1.0.0 version of 26.2 GameVer.
