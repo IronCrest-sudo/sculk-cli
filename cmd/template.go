@@ -11,7 +11,7 @@ import (
 
 // sculk template add/use [templateName]
 var templateCmd = &cobra.Command{
-	Use:   "template",
+	Use:   "template [templateName]",
 	Args:  cobra.ExactArgs(1),
 	Short: "Create and use existing project as a base/template for future projects.",
 	Long:  `Create and use existing project as a base/template for future projects.`,

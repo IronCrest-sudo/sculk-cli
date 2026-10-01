@@ -97,7 +97,7 @@ Notes:
 
 Just like how a developer may download a particular package, say for example: the pandas library* of python, the command for it in command-line would be: `pip install pandas`
 
-Similarly, sculk-cli uses acronyms/identifiers to identify certain libraries/projects. Sculk doesn't have its own package storage and hosting platform, so it sources the packages from Git Hosting platforms like GitHub and Codeberg. Internally, each unique "identifier" is mapped to a source repository, which is cloned and seemlessly merged with the current project.
+Similarly, sculk-cli uses acronyms/identifiers to identify certain libraries/projects. Sculk doesn't have its own package storage and hosting platform, so it sources the packages from Git Hosting platforms like GitHub and Codeberg. Internally, each unique "identifier" is mapped to a source repository, which is cloned and seemlessly merged with the current project. Alternatively, you can also provide a link directly.
 
 Run the following command:
 ```
@@ -114,7 +114,6 @@ Sculk will then reach in its internal hashmap, get the source link and get the c
    "libraries": [
       {
          "identifier": "id-system",
-         "name": "ID System",
          "source": "http://github.com/officialbarden/id-system",
          "version": "1.0.0",
          "game_version": "26.2"
@@ -126,6 +125,32 @@ Sculk will then reach in its internal hashmap, get the source link and get the c
 Here, you can see that the library* information is stored inside your `libraries.json` file. You can share this .json file with other sculk developers, and ask them to run the command `sculk install` to install all packages specified in the 'libraries[]' field.
 
 If you're working on an unstable version, like a snapshot: you can use the `--ignore` flag to ignore Game Version Mismatch Checking and install packages directly meant for other Game Versions into your sculk project. 
+
+Alternatively, you can also run the command:
+Run the following command:
+```
+sculk add https://github.com/officialbarden/id-system
+```
+
+Sculk will then install the contents of the repository into your datapack, and will update your `libraries.json` to look like the following:
+
+```json
+{
+   "author": "USER",
+   "version": "1.0.0",
+   "game_version": "26.2",
+   "libraries": [
+      {
+         "identifier": "http://github.com/officialbarden/id-system",
+         "source": "http://github.com/officialbarden/id-system",
+         "version": "1.0.0",
+         "game_version": "26.2"
+      }
+   ]
+}
+```
+
+This allows Sculk to have a *decentralized library ecosystem*.
 
 *Note: By using the --ignore flag, you are to take full responsibility of how the library interacts with your sculk project, as some additional stuff, like tags, advancements, predicates and more may get installed and merged into your project without a warning!*
 
