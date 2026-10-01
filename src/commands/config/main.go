@@ -30,9 +30,8 @@ func InitConfig() {
 	appDir, err := os.UserConfigDir()
 	if err != nil {panic(err)}
 	
-	sculkConfigFilePath := filepath.Join(appDir, ".sculk", "config.json")
-	sculkConfigFilePathDir := filepath.Dir(sculkConfigFilePath)
-	err = os.MkdirAll(sculkConfigFilePathDir, 0644)
+	sculkConfigFilePath := filepath.Join(appDir, ".sculk")
+	err = os.MkdirAll(sculkConfigFilePath, 0644)
 	if err != nil {panic(err)}
 	
 	sculkConfigBase := Config{
@@ -48,7 +47,7 @@ func InitConfig() {
 	sculkConfigBaseJson, err := json.MarshalIndent(sculkConfigBase, "", "	")
 	
 	// write to config.
-	err = os.WriteFile(sculkConfigFilePath, sculkConfigBaseJson, 0755)
+	err = os.WriteFile(filepath.Join(sculkConfigFilePath, "config.json"), sculkConfigBaseJson, 0755)
 	if err != nil {panic(err)}
 }
 	
