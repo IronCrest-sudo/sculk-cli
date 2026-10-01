@@ -35,7 +35,6 @@ func VerifyLibraryIntegrity(identifier string) libraryBlock {
 			Source: identifier,
 			Identifier: identifier,
 		}
-		log.Print(libraryReturned)
 		return libraryReturned
 	}
 	
