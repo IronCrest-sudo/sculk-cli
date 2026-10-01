@@ -2,7 +2,6 @@
 package add
 
 import (
-	"log"
 	"sculk-cli/src/commands/initProject/create"
 )
 
