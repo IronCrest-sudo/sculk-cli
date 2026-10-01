@@ -10,19 +10,30 @@ on:
     branches: [ "master" ]
 
 jobs:
-
   build:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
 
     - name: Set up Go
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v5
       with:
-        go-version: '1.27'
+        go-version-file: go.mod
 
-    - name: Build
-      run: go build -v ./... -o "sculk.exe"
+    - name: Build (verify all packages compile)
+      run: go build -v ./...
+
+    - name: Build Windows binary
+      run: go build -v -o sculk.exe .
+      env:
+        GOOS: windows
+        GOARCH: amd64
 
     - name: Test
       run: go test -v ./...
+
+    - name: Upload binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: sculk
+        path: sculk.exe
