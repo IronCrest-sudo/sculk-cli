@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 
 	"charm.land/log/v2"
 )
@@ -141,6 +143,81 @@ func CreateResourcepackFiles(files []ResourcepackFile) {
 	}
 }
 
+func SemanticVersionAdapting(versionString string, semanticVersionString string) bool {
+	// versionString = "26.3"
+	// semanticVersionString = ">=26.2"
+	// versionString > semanticVersionString; return true.
+
+	compareOperators := []string{
+		">",		// greater than current version
+		"<",		// older than current version
+		">=",		// greater than or equal to
+		"<=",		// older than or equal to
+		// "~",		// approximately the same version (sub-version comparison)
+		"=",		// exactly the same version (ignore)
+	}
+
+	compareOperator := ""
+	for _, op := range compareOperators {
+		if strings.HasPrefix(semanticVersionString, op) {
+			compareOperator = op
+			break
+		}
+	}
+
+	// cut compare operator (">=26.3" => "26.3")
+	semanticVersionStringSlice, found := strings.CutPrefix(semanticVersionString, compareOperator)
+	if found == false {
+		log.Print("No Comparison Operator found, treating it as '='.")
+		compareOperator = "="
+	}
+	
+	// support multiple-versioning (26.1.2 etc.)
+	// "26.1" => ["26", "1"]
+	// "26.1.2" => ["26", "1", "2"]
+	versionStringList := strings.Split(versionString, ".")
+	semanticVersionStringList := strings.Split(semanticVersionStringSlice, ".")
+
+	var longestVersionString []string
+	if len(versionStringList) > len(semanticVersionStringList) {
+		longestVersionString = versionStringList
+	} else {
+		longestVersionString = semanticVersionStringList
+	}
+	
+	for i, val := range longestVersionString {
+		parsedSemanticVerVal, err := strconv.Atoi(val)
+		if err != nil {return false}
+		parsedVerVal, err := strconv.Atoi(versionStringList[i])
+		if err != nil {return false}
+
+		switch compareOperator {
+			case "<":
+				if parsedVerVal < parsedSemanticVerVal {
+					return true
+				}
+			case ">":
+				if parsedVerVal > parsedSemanticVerVal {
+					return true
+				}
+			case "<=":
+				if parsedVerVal <= parsedSemanticVerVal {
+					return true
+				}
+			case ">=":
+				if parsedVerVal >= parsedSemanticVerVal {
+					return true
+				}
+			case "=":
+				if parsedVerVal == parsedSemanticVerVal {
+					return true
+				}
+		}
+	}
+
+	return false
+}
+
 func GetDatapackFilesList(projectName string, projectVersion string) []DatapackFile {
 	fileStructure := map[string][]DatapackFile{
 		"26.2": {
@@ -264,6 +341,13 @@ func GetDatapackFilesList(projectName string, projectVersion string) []DatapackF
 			{DirName: AddProjectNamespace("/data/", projectName, "/functions/global/"), FileName: "tick.mcfunction", Content: []byte("")},
 		},
 	}
+
+	// for k := range fileStructure {
+	// 	if SemanticVersionAdapting(projectVersion, k) {
+	// 		return fileStructure[k]
+	// 	}
+	// }
+
 	return fileStructure[projectVersion]
 }
 

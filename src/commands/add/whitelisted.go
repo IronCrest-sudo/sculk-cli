@@ -2,6 +2,7 @@
 package add
 
 import (
+	"log"
 	"sculk-cli/src/commands/initProject/create"
 )
 
@@ -11,7 +12,7 @@ type libraryBlock struct {
 }
 
 func VerifyLibraryIntegrity(identifier string) libraryBlock {
-
+	
 	// approved libraries: { "identifier": "github.com/identifier" }
 	approvedLibraries := map[string]libraryBlock{
 		"id-system": {
@@ -23,7 +24,21 @@ func VerifyLibraryIntegrity(identifier string) libraryBlock {
 			Source:         "https://github.com/CJDevZ/UUID-Hex",
 		},
 	}
-	return approvedLibraries[identifier]
+
+	// also allow direct downloads from github cuz why not
+	_, ok := approvedLibraries[identifier]
+	if ok == true {
+		return approvedLibraries[identifier]
+	} else {
+		
+		libraryReturned := libraryBlock{
+			Source: identifier,
+			Identifier: identifier,
+		}
+		log.Print(libraryReturned)
+		return libraryReturned
+	}
+	
 }
 
 
