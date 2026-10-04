@@ -1,3 +1,35 @@
+# Sculk-CLI
+
+## Install
+
+You need [Go](https://go.dev/dl/) (the version listed in `go.mod`) and Git.
+
+**Linux / macOS / Codespaces**
+```shell
+git clone https://github.com/IronCrest-sudo/sculk-cli.git
+cd sculk-cli
+./install.sh
+```
+This builds sculk and puts it on your PATH, so you can type `sculk` from anywhere (not `./sculk`). Nothing is left behind inside the repository, so `git` will not show a stray binary. Run `./install.sh` again after pulling updates.
+
+**Windows**
+```shell
+go build -o sculk.exe .
+```
+Move `sculk.exe` to a permanent folder and add that folder to your PATH.
+
+## Quick start
+
+Open a shell *inside* your datapack folder (e.g. `saves/WORLD_NAME/datapacks/my_pack`):
+```shell
+sculk init --dp <namespace> <gameVersion>   # start a sculk project
+sculk add id-system                          # add a library
+sculk list                                   # see what is available
+```
+Not sure about a command? `sculk --help` and `sculk <command> --help` list everything.
+
+---
+
 ## Todo
 
 ### Goals

@@ -240,6 +240,7 @@ func ConfigExists() bool {
 	_, _, err := GetSculkConfig()
 	if err != nil {
 		log.Print("Couldn't find config.json, creating a new base config. Use 'sculk config' to change values.")
+		log.Print("New here? Open a shell inside your datapack folder and run: sculk init --dp <namespace> <gameVersion>")
 		InitConfig()
 		return false
 	} else {
