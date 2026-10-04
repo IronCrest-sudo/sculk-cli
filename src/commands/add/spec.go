@@ -75,6 +75,11 @@ func ParseSpec(arg string) (LibrarySpec, error) {
 	}
 
 	if IsDirectURL(arg) {
+		// A browser link to a registered library ("…/tree/main/<subdir>") is
+		// just another spelling of its registry identifier.
+		if id, ok := RegistryIdentifierForURL(arg); ok {
+			return LibrarySpec{Identifier: id, Raw: raw}, nil
+		}
 		return LibrarySpec{Identifier: arg, IsURL: true, Raw: raw}, nil
 	}
 

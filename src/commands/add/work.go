@@ -121,9 +121,6 @@ func InstallLibrary(spec LibrarySpec, ignoreVersionMismatch bool) error {
 // libraries.json so that a shared libraries.json reproduces the same layout on
 // every machine.
 func InstallLibraryWithMode(spec LibrarySpec, mode string, ignoreVersionMismatch bool) error {
-	if mode == "" {
-		mode = DefaultInstallMode()
-	}
 	// Registry lookup happens on the bare identifier so that
 	// "id-system@1.0.0" and "id-system" hit the same entry.
 	spec.Identifier = lookupIdentifier(spec)
@@ -131,6 +128,22 @@ func InstallLibraryWithMode(spec LibrarySpec, mode string, ignoreVersionMismatch
 	if IsPreinstalled(spec.Identifier) {
 		return nil
 	}
+
+	return InstallRecordedLibrary(spec, mode, ignoreVersionMismatch)
+}
+
+// InstallRecordedLibrary installs a library even though libraries.json already
+// lists it. `sculk install` needs this: every library it handles is, by
+// definition, already recorded, so the IsPreinstalled guard in
+// InstallLibraryWithMode would make it skip everything.
+//
+// In "separate" mode a pack that is already on disk is left alone, which keeps
+// `sculk install` safe to re-run.
+func InstallRecordedLibrary(spec LibrarySpec, mode string, ignoreVersionMismatch bool) error {
+	if mode == "" {
+		mode = DefaultInstallMode()
+	}
+	spec.Identifier = lookupIdentifier(spec)
 
 	block := VerifyLibraryIntegrity(spec.Identifier)
 
@@ -144,6 +157,15 @@ func InstallLibraryWithMode(spec LibrarySpec, mode string, ignoreVersionMismatch
 	}
 	resolved.Block = block
 	resolved.Mode = mode
+
+	if mode == create.InstallSeparate {
+		if target, _, err := SeparateTargetDir(block); err == nil {
+			if entries, err := os.ReadDir(target); err == nil && len(entries) > 0 {
+				log.Printf("ℹ '%s' is already present at %s, skipping.", block.Identifier, target)
+				return nil
+			}
+		}
+	}
 
 	project := ReadLocalLibrariesJson()
 

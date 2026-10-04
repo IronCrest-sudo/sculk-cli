@@ -215,3 +215,56 @@ func libraryRecord(r ResolvedLibrary) create.Library {
 		Ref:         r.RefLabel(),
 	}
 }
+
+// normalizeGitURL lower-cases a git host URL and strips everything that does
+// not change which repository it points at: scheme, "www.", a trailing ".git"
+// and trailing slashes.
+func normalizeGitURL(raw string) string {
+	u := strings.ToLower(strings.TrimSpace(raw))
+	u = strings.TrimPrefix(u, "https://")
+	u = strings.TrimPrefix(u, "http://")
+	u = strings.TrimPrefix(u, "www.")
+	u = strings.TrimRight(u, "/")
+	u = strings.TrimSuffix(u, ".git")
+	return strings.TrimRight(u, "/")
+}
+
+// RegistryIdentifierForURL maps a browser URL of a registered library, such as
+// "https://github.com/owner/repo/tree/main/some/subdir", back to its registry
+// identifier. The branch in a /tree/ URL is ignored; only the repository and
+// the registered Subdir have to match. It reports false for anything that is
+// not a registered library.
+func RegistryIdentifierForURL(raw string) (string, bool) {
+	url := normalizeGitURL(raw)
+	if url == "" {
+		return "", false
+	}
+
+	repo, rest := url, ""
+	if i := strings.Index(url, "/tree/"); i >= 0 {
+		repo, rest = url[:i], url[i+len("/tree/"):]
+	}
+
+	// Deterministic result if two entries ever share a repository.
+	ids := make([]string, 0, len(approvedLibraries))
+	for id := range approvedLibraries {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+
+	for _, id := range ids {
+		block := approvedLibraries[id]
+		if block.Source == "" || normalizeGitURL(block.Source) != repo {
+			continue
+		}
+		subdir := strings.Trim(strings.ToLower(block.Subdir), "/")
+		switch {
+		case rest == "" && subdir == "":
+			return block.Identifier, true
+		case rest != "" && subdir != "" && (rest == subdir || strings.HasSuffix(rest, "/"+subdir)):
+			// "<ref>/<subdir>" (or a bare "<subdir>") inside the same repo.
+			return block.Identifier, true
+		}
+	}
+	return "", false
+}

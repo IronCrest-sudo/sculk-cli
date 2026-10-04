@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"sculk-cli/src/commands/initProject/create"
 
@@ -30,10 +31,17 @@ func AddToLibrariesJsonRecord(resolved ResolvedLibrary) error {
 
 	librariesJson := ReadLocalLibrariesJson()
 
-	for _, lib := range librariesJson.Libraries {
+	for i, lib := range librariesJson.Libraries {
 		if lib.Identifier == record.Identifier {
 			log.Printf("⚠ Library '%s' already exists in libraries.json", record.Identifier)
 			return nil
+		}
+		// Self-heal entries that were written with a browser URL instead of
+		// the registry identifier.
+		if id, ok := RegistryIdentifierForURL(lib.Identifier); ok && strings.EqualFold(id, record.Identifier) {
+			log.Printf("🩹 Rewriting '%s' in libraries.json as '%s'.", lib.Identifier, record.Identifier)
+			librariesJson.Libraries[i] = record
+			return writeLibrariesJson(jsonPath, librariesJson)
 		}
 	}
 

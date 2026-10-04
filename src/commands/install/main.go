@@ -51,10 +51,6 @@ func Main(ignoreVersionMismatch bool) error {
 // installOne installs a single recorded library, honouring the ref and the
 // install mode that were recorded when it was first added.
 func installOne(lib create.Library, ignoreVersionMismatch bool) error {
-	if add.IsPreinstalled(lib.Identifier) {
-		return nil
-	}
-
 	// Re-pin the exact ref that was recorded, so a shared libraries.json does
 	// not silently drift to a newer branch.
 	target := lib.Identifier
@@ -73,5 +69,5 @@ func installOne(lib create.Library, ignoreVersionMismatch bool) error {
 	}
 
 	log.Printf("📦 %s  (v%s, %s mode)", spec.String(), lib.Version, mode)
-	return add.InstallLibraryWithMode(spec, mode, ignoreVersionMismatch)
+	return add.InstallRecordedLibrary(spec, mode, ignoreVersionMismatch)
 }
