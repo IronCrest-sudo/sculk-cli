@@ -9,7 +9,8 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "gen:libraries": "sculk list --json > src/data/libraries.json"
   },
   "dependencies": {
     "@astrojs/svelte": "^9.0.1",

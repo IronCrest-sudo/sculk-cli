@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"strconv"
-	"strings"
+
+	"sculk-cli/src/version"
 
 	"charm.land/log/v2"
 )
@@ -46,7 +46,23 @@ type Library struct {
 	Source      string `json:"source"`       // A Git Repo Hosting Platform.
 	Version     string `json:"version"`      // version of the imported library.
 	GameVersion string `json:"game_version"` // version of the game the library supports.
+
+	// Install records how the library was laid down: "merge" (default, the
+	// library's files are merged into this project) or "separate" (the library
+	// was installed as its own pack next to this one). It is omitted for
+	// "merge" so that libraries.json files written by older sculk versions
+	// stay valid.
+	Install string `json:"install,omitempty"`
+	// Ref is the git branch or tag the library was resolved from, when the
+	// install pinned one. Empty means the repository's default branch.
+	Ref string `json:"ref,omitempty"`
 }
+
+// Install modes for Library.Install.
+const (
+	InstallMerge    = "merge"
+	InstallSeparate = "separate"
+)
 
 func CreateLibrariesJson(author string, gameVersion string) {
 
@@ -143,79 +159,14 @@ func CreateResourcepackFiles(files []ResourcepackFile) {
 	}
 }
 
+// SemanticVersionAdapting reports whether versionString satisfies the
+// constraint in semanticVersionString, e.g. ("26.3", ">=26.2") -> true.
+//
+// It is a thin wrapper over the shared version package so that every part of
+// sculk compares versions the same way; it accepts the full constraint syntax
+// (">=26.2", "<1.20.1", "^1.2.0", "1.2.x", ">=1.0.0 <2.0.0", "1.0.0 || 2.0.0").
 func SemanticVersionAdapting(versionString string, semanticVersionString string) bool {
-	// versionString = "26.3"
-	// semanticVersionString = ">=26.2"
-	// versionString > semanticVersionString; return true.
-
-	compareOperators := []string{
-		">",		// greater than current version
-		"<",		// older than current version
-		">=",		// greater than or equal to
-		"<=",		// older than or equal to
-		// "~",		// approximately the same version (sub-version comparison)
-		"=",		// exactly the same version (ignore)
-	}
-
-	compareOperator := ""
-	for _, op := range compareOperators {
-		if strings.HasPrefix(semanticVersionString, op) {
-			compareOperator = op
-			break
-		}
-	}
-
-	// cut compare operator (">=26.3" => "26.3")
-	semanticVersionStringSlice, found := strings.CutPrefix(semanticVersionString, compareOperator)
-	if found == false {
-		log.Print("No Comparison Operator found, treating it as '='.")
-		compareOperator = "="
-	}
-	
-	// support multiple-versioning (26.1.2 etc.)
-	// "26.1" => ["26", "1"]
-	// "26.1.2" => ["26", "1", "2"]
-	versionStringList := strings.Split(versionString, ".")
-	semanticVersionStringList := strings.Split(semanticVersionStringSlice, ".")
-
-	var longestVersionString []string
-	if len(versionStringList) > len(semanticVersionStringList) {
-		longestVersionString = versionStringList
-	} else {
-		longestVersionString = semanticVersionStringList
-	}
-	
-	for i, val := range longestVersionString {
-		parsedSemanticVerVal, err := strconv.Atoi(val)
-		if err != nil {return false}
-		parsedVerVal, err := strconv.Atoi(versionStringList[i])
-		if err != nil {return false}
-
-		switch compareOperator {
-			case "<":
-				if parsedVerVal < parsedSemanticVerVal {
-					return true
-				}
-			case ">":
-				if parsedVerVal > parsedSemanticVerVal {
-					return true
-				}
-			case "<=":
-				if parsedVerVal <= parsedSemanticVerVal {
-					return true
-				}
-			case ">=":
-				if parsedVerVal >= parsedSemanticVerVal {
-					return true
-				}
-			case "=":
-				if parsedVerVal == parsedSemanticVerVal {
-					return true
-				}
-		}
-	}
-
-	return false
+	return version.Satisfies(versionString, semanticVersionString)
 }
 
 func GetDatapackFilesList(projectName string, projectVersion string) []DatapackFile {
@@ -342,13 +293,31 @@ func GetDatapackFilesList(projectName string, projectVersion string) []DatapackF
 		},
 	}
 
-	// for k := range fileStructure {
-	// 	if SemanticVersionAdapting(projectVersion, k) {
-	// 		return fileStructure[k]
-	// 	}
-	// }
+	if files, ok := fileStructure[projectVersion]; ok {
+		return files
+	}
 
-	return fileStructure[projectVersion]
+	// Unknown game version: fall back to the closest known older entry rather
+	// than creating nothing at all. Without this, `sculk init mypack 26.4`
+	// would produce an empty project.
+	best := ""
+	var bestVersion version.Version
+	for candidate := range fileStructure {
+		c := version.Parse(candidate)
+		if c.Compare(version.Parse(projectVersion)) > 0 {
+			continue
+		}
+		if best == "" || c.Compare(bestVersion) > 0 {
+			best, bestVersion = candidate, c
+		}
+	}
+	if best != "" {
+		log.Printf("⚠ No file structure defined for Minecraft %s; using the %s layout. Check the pack format and folder names.", projectVersion, best)
+		return fileStructure[best]
+	}
+
+	log.Printf("⚠ No file structure defined for Minecraft %s; nothing to create.", projectVersion)
+	return nil
 }
 
 func GetResourcepackFilesList(projectName string, projectVersion string) []ResourcepackFile {

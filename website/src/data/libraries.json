@@ -1,0 +1,85 @@
+[
+  {
+    "identifier": "astar",
+    "description": "A* pathfinding as a Minecraft datapack.",
+    "author": "CJDev",
+    "source": "https://github.com/CJDevZ/A-Star-Pathfinding",
+    "kind": "datapack"
+  },
+  {
+    "identifier": "hitmatch",
+    "description": "Select entities that exchanged damage with players.",
+    "author": "picarrow",
+    "source": "https://github.com/picarrow/hit-match",
+    "kind": "datapack"
+  },
+  {
+    "identifier": "id-system",
+    "description": "Entity ID system - hands out stable scoreboard ids.",
+    "author": "officialbarden",
+    "source": "https://github.com/officialbarden/id-system",
+    "kind": "datapack"
+  },
+  {
+    "identifier": "macroengine",
+    "description": "Macro/module framework: string, cooldown, multi-cmd, math, nbt, geo, hooks, permissions, uuid cache and an input system.",
+    "author": "vortacraftmc",
+    "source": "https://github.com/IronCrest-sudo/core.git",
+    "subdir": "archived/macroEngine-Datapack-v26.4",
+    "kind": "datapack",
+    "homepage": "https://github.com/IronCrest-sudo/core/tree/main/archived/macroEngine-Datapack-v26.4",
+    "notice": "archived upstream (read-only, no further fixes). Ships a load gate: the pack stays inert until an operator runs `/function macroengine:gate/v26_4/confirm {format:122}`. Best installed with `sculk config doMerge false`."
+  },
+  {
+    "identifier": "macroengine-rp",
+    "description": "Companion resource pack for macroEngine (i18n text, sounds, trim assets).",
+    "author": "vortacraftmc",
+    "source": "https://github.com/IronCrest-sudo/core.git",
+    "subdir": "packs/macroEngine-Resourcepack-v26.4",
+    "kind": "resourcepack",
+    "homepage": "https://github.com/IronCrest-sudo/core/tree/main/packs/macroEngine-Resourcepack-v26.4",
+    "notice": "companion of 'macroengine'; required for engine text, sounds and armor-trim assets."
+  },
+  {
+    "identifier": "playermotion",
+    "description": "Enchantment-effect based player motion.",
+    "author": "MulverineX",
+    "source": "https://github.com/MulverineX/player_motion",
+    "kind": "datapack"
+  },
+  {
+    "identifier": "reef",
+    "description": "Build presentations entirely in vanilla Minecraft.",
+    "author": "Trioplane",
+    "source": "https://github.com/Trioplane/reef",
+    "kind": "datapack"
+  },
+  {
+    "identifier": "speclib",
+    "description": "Spectate entities with a free camera.",
+    "author": "officialbarden",
+    "source": "https://github.com/officialbarden/speclib",
+    "kind": "datapack"
+  },
+  {
+    "identifier": "stringlib",
+    "description": "String manipulation utilities for datapacks.",
+    "author": "CMDred",
+    "source": "https://github.com/CMDred/StringLib",
+    "kind": "datapack"
+  },
+  {
+    "identifier": "titlewriter",
+    "description": "Animate title text with a per-character delay and sound.",
+    "author": "officialbarden",
+    "source": "https://github.com/officialbarden/titlewriter",
+    "kind": "datapack"
+  },
+  {
+    "identifier": "uuid",
+    "description": "High-performance UUID \u003c-\u003e hex string conversion.",
+    "author": "CJDev",
+    "source": "https://github.com/CJDevZ/UUID-Hex",
+    "kind": "datapack"
+  }
+]

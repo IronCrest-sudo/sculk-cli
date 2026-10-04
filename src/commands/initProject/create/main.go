@@ -2,7 +2,7 @@
 package create
 
 import (
-	"os/user"
+	"sculk-cli/src/commands/config"
 
 	"charm.land/log/v2"
 )
@@ -21,13 +21,10 @@ func CreateSculkProject(args []string, flags map[string]bool) error {
 		projectType = "rp"
 	}
 
-	// create libraries.json
-	user, err := user.Current()
-	if err != nil {
-		panic(err)
-	}
-		
-	CreateLibrariesJson(user.Name, projectVersion)
+	// create libraries.json, stamped with the configured author name
+	author := config.AuthorName()
+	log.Printf("🚧  Author '%s' (change it with 'sculk config author <name>')", author)
+	CreateLibrariesJson(author, projectVersion)
 
 	// actually create files now
 	switch projectType {
@@ -39,7 +36,7 @@ func CreateSculkProject(args []string, flags map[string]bool) error {
 
 	// create pack.mcmeta file
 	log.Printf("🚧  Creating pack.mcmeta ...")
-	err = CreatePackMcmeta(projectVersion, projectType)
+	err := CreatePackMcmeta(projectVersion, projectType)
 	log.Printf("✅  Created pack.mcmeta")
 	return err
 }

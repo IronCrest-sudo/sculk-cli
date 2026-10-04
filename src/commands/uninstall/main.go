@@ -5,39 +5,119 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"sculk-cli/src/commands/add"
 	"strings"
+
+	"sculk-cli/src/commands/add"
+	"sculk-cli/src/commands/initProject/create"
 
 	"charm.land/log/v2"
 	"github.com/go-git/go-billy/v6"
 )
 
-// Similar to `sculk add` command, walk to every file, then delete instead of merging.
-func Main(args []string) {
-
+// Similar to `sculk add`, walk to every file, then delete instead of merging.
+// Libraries that were installed separately (doMerge=false) are removed by
+// deleting the pack directory sculk created for them.
+func Main(args []string) error {
 	libraryIdentifiers := args
-	for _, libraryIdentifier := range libraryIdentifiers {
-		UninstallLibrary(libraryIdentifier)
+
+	// No identifiers given -> uninstall everything in libraries.json.
+	if len(libraryIdentifiers) == 0 {
+		for _, lib := range add.ReadLocalLibrariesJson().Libraries {
+			libraryIdentifiers = append(libraryIdentifiers, lib.Identifier)
+		}
+		if len(libraryIdentifiers) == 0 {
+			log.Printf("ℹ Nothing to uninstall, libraries.json is empty.")
+			return nil
+		}
 	}
 
-	log.Printf("Note: Please delete the empty directories manually.")
+	var failed []string
+	for _, libraryIdentifier := range libraryIdentifiers {
+		if err := UninstallLibrary(libraryIdentifier); err != nil {
+			log.Printf("⚠ Could not uninstall '%s': %v", libraryIdentifier, err)
+			failed = append(failed, libraryIdentifier)
+		}
+	}
+
+	log.Printf("Note: Please delete any empty directories manually.")
+
+	if len(failed) > 0 {
+		return errJoin(failed)
+	}
+	return nil
 }
 
-func UninstallLibrary(libraryIdentifier string) {
-	// drop repo-link and librariesjson information
-	_, _, sourceCodeFilesystem, err := add.GetLibrarySource(libraryIdentifier)
-	if err != nil {panic(err)}
-	
-	getWorkingDir, err := os.Getwd()
-	// start from '/'
-	err = TraverseSourceCode(sourceCodeFilesystem, "/", getWorkingDir)
-	if err != nil {panic(err)}
-	err = add.RemoveFromLibrariesJson(libraryIdentifier)
-	if err != nil {panic(err)}
+type joinError struct{ items []string }
+
+func (e joinError) Error() string  { return "failed to uninstall: " + strings.Join(e.items, ", ") }
+func errJoin(items []string) error { return joinError{items} }
+
+// UninstallLibrary removes one library and its libraries.json record.
+func UninstallLibrary(libraryIdentifier string) error {
+	record, installed := add.FindInstalled(libraryIdentifier)
+
+	// Separately installed packs are simply their own directory.
+	if installed && record.Install == create.InstallSeparate {
+		return removeSeparatePack(libraryIdentifier, record)
+	}
+
+	// Merged libraries: re-fetch the source and delete exactly what it added.
+	spec, err := add.ParseSpec(libraryIdentifier)
+	if err != nil {
+		return err
+	}
+	// Keep the pinned ref so the deletion matches what was installed.
+	if installed && record.Ref != "" {
+		spec, err = add.ParseSpec(libraryIdentifier + "@" + record.Ref)
+		if err != nil {
+			return err
+		}
+	}
+
+	resolved, err := add.Resolve(spec)
+	if err != nil {
+		return err
+	}
+
+	targetDir, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	if err := TraverseSourceCode(resolved.Fs, resolved.Root, targetDir); err != nil {
+		return err
+	}
+
+	return add.RemoveFromLibrariesJson(libraryIdentifier)
+}
+
+// removeSeparatePack deletes the sibling pack directory sculk created.
+func removeSeparatePack(libraryIdentifier string, record create.Library) error {
+	block := add.VerifyLibraryIntegrity(libraryIdentifier)
+
+	dir, _, err := add.SeparateTargetDir(block)
+	if err != nil {
+		return err
+	}
+
+	if info, err := os.Stat(dir); err == nil && info.IsDir() {
+		log.Printf("🚮 Removing separate pack %s", dir)
+		if err := os.RemoveAll(dir); err != nil {
+			return err
+		}
+	} else {
+		log.Printf("⚠ Separate pack directory not found at %s (already removed?)", dir)
+	}
+	_ = record
+
+	return add.RemoveFromLibrariesJson(libraryIdentifier)
 }
 
 func TraverseSourceCode(fs billy.Filesystem, currentPath string, targetDir string) error {
 	files, err := fs.ReadDir(currentPath)
+	if err != nil {
+		return err
+	}
 
 	for _, file := range files {
 		// store memory path and local path
@@ -46,9 +126,8 @@ func TraverseSourceCode(fs billy.Filesystem, currentPath string, targetDir strin
 
 		if file.IsDir() {
 			// if found directory, go inside that directory and recurse.
-			err = TraverseSourceCode(fs, memoryPath, localPath)
-			if err != nil {
-				panic(err)
+			if err := TraverseSourceCode(fs, memoryPath, localPath); err != nil {
+				return err
 			}
 
 		} else {
@@ -60,25 +139,29 @@ func TraverseSourceCode(fs billy.Filesystem, currentPath string, targetDir strin
 				"pack.mcmeta",
 				"README.md",
 			}
-			
-			err := handleFileDeletion(fs, memoryPath, localPath, blacklistedFiles)
+
+			deleted, err := handleFileDeletion(fs, memoryPath, localPath, blacklistedFiles)
 			if err != nil {
-				panic(err)
+				return err
 			}
-			log.Printf("🚮 Deleted file '%s'.", file.Name())
+			if deleted {
+				log.Printf("🚮 Deleted file '%s'.", file.Name())
+			}
 		}
 	}
 	return nil
 }
 
-
-func handleFileDeletion(fs billy.Filesystem, sourcePath string, destinationPath string, blacklist []string) error {
+// handleFileDeletion removes what one library file contributed to the
+// project. It reports whether anything was actually removed, so that skipped
+// (blacklisted or absent) files are not logged as deletions.
+func handleFileDeletion(fs billy.Filesystem, sourcePath string, destinationPath string, blacklist []string) (bool, error) {
 
 	// open source file (contains the lines/entries to remove)
 	srcFile, err := fs.Open(sourcePath)
 	if err != nil {
 		log.Error("⚠ Source File Doesn't Exist.")
-		return err
+		return false, err
 	}
 	defer srcFile.Close()
 
@@ -86,24 +169,24 @@ func handleFileDeletion(fs billy.Filesystem, sourcePath string, destinationPath 
 	fileInfo, err := os.Stat(destinationPath)
 	if err != nil {
 		log.Printf("⚠ Destination File Doesn't Exist, nothing to delete: %s", destinationPath)
-		return nil
+		return false, nil
 	}
 
 	if isBlacklisted(fileInfo.Name(), blacklist) {
 		log.Printf("🚫 %s is blacklisted, skipping deletion", fileInfo.Name())
-		return nil
+		return false, nil
 	}
 
 	fileExtension := strings.TrimPrefix(filepath.Ext(fileInfo.Name()), ".")
 
 	sourceContent, err := io.ReadAll(srcFile)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	rootDir, err := os.Getwd()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	if fileExtension == "json" {
@@ -116,14 +199,14 @@ func handleFileDeletion(fs billy.Filesystem, sourcePath string, destinationPath 
 
 			existingContent, err := os.ReadFile(destinationPath)
 			if err != nil {
-				return err
+				return false, err
 			}
 
 			if err := json.Unmarshal(sourceContent, &sourceTagContent); err != nil {
-				return err
+				return false, err
 			}
 			if err := json.Unmarshal(existingContent, &existingTagContent); err != nil {
-				return err
+				return false, err
 			}
 
 			// build a lookup of values to remove
@@ -144,25 +227,25 @@ func handleFileDeletion(fs billy.Filesystem, sourcePath string, destinationPath 
 			if len(existingTagContent.Values) == 0 {
 				log.Printf("🗑 %s is now empty, deleting file", fileInfo.Name())
 				if err := os.Remove(destinationPath); err != nil {
-					return err
+					return false, err
 				}
-				return removeEmptyDirs(filepath.Dir(destinationPath), rootDir, blacklist)
+				return true, removeEmptyDirs(filepath.Dir(destinationPath), rootDir, blacklist)
 			}
 
-			combined, err := json.Marshal(existingTagContent)
+			combined, err := json.MarshalIndent(existingTagContent, "", "  ")
 			if err != nil {
-				return err
+				return false, err
 			}
-			return os.WriteFile(destinationPath, combined, 0644)
+			return true, os.WriteFile(destinationPath, combined, 0644)
 		} else {
-			return os.Remove(destinationPath)
+			return true, os.Remove(destinationPath)
 		}
 	}
 
 	// generic line-based deletion
 	existingData, err := os.ReadFile(destinationPath)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	// lines to remove, exact match
@@ -184,12 +267,12 @@ func handleFileDeletion(fs billy.Filesystem, sourcePath string, destinationPath 
 	if remaining == "" {
 		log.Printf("🗑 %s is now empty, deleting file", fileInfo.Name())
 		if err := os.Remove(destinationPath); err != nil {
-			return err
+			return false, err
 		}
-		return removeEmptyDirs(filepath.Dir(destinationPath), rootDir, blacklist)
+		return true, removeEmptyDirs(filepath.Dir(destinationPath), rootDir, blacklist)
 	}
 
-	return os.WriteFile(destinationPath, []byte(remaining+"\n"), 0644)
+	return true, os.WriteFile(destinationPath, []byte(remaining+"\n"), 0644)
 }
 
 func isBlacklisted(name string, blacklist []string) bool {
@@ -220,51 +303,17 @@ func removeEmptyDirs(dir string, root string, blacklist []string) error {
 			return nil
 		}
 
-		empty, err := isEmptyDirTree(dir, blacklist)
+		entries, err := os.ReadDir(dir)
 		if err != nil {
-			if os.IsNotExist(err) {
-				return nil
-			}
-			return err
+			return nil
 		}
-
-		if !empty {
-			// contains at least one real (or blacklisted) file somewhere, stop climbing
+		if len(entries) > 0 {
 			return nil
 		}
 
-		log.Printf("🗑 Removing empty directory tree %s", dir)
-		if err := os.RemoveAll(dir); err != nil {
-			return err
+		if err := os.Remove(dir); err != nil {
+			return nil
 		}
-
 		dir = filepath.Dir(dir)
 	}
-}
-
-func isEmptyDirTree(dir string, blacklist []string) (bool, error) {
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return false, err
-	}
-
-	for _, entry := range entries {
-		if isBlacklisted(entry.Name(), blacklist) {
-			return false, nil
-		}
-
-		if !entry.IsDir() {
-			return false, nil
-		}
-
-		childEmpty, err := isEmptyDirTree(filepath.Join(dir, entry.Name()), blacklist)
-		if err != nil {
-			return false, err
-		}
-		if !childEmpty {
-			return false, nil
-		}
-	}
-
-	return true, nil
 }

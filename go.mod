@@ -3,15 +3,16 @@ module sculk-cli
 go 1.27.0
 
 require (
+	charm.land/log/v2 v2.0.1
 	github.com/go-git/go-billy/v6 v6.0.0-alpha.2
 	github.com/go-git/go-git/v6 v6.0.0-alpha.5
+	github.com/otiai10/copy v1.14.1
 	github.com/savioxavier/termlink v1.4.3
 	github.com/spf13/cobra v1.10.2
 )
 
 require (
 	charm.land/lipgloss/v2 v2.0.5 // indirect
-	charm.land/log/v2 v2.0.1 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/ProtonMail/go-crypto v1.4.1 // indirect
 	github.com/charmbracelet/colorprofile v0.4.3 // indirect
@@ -32,7 +33,6 @@ require (
 	github.com/lucasb-eyer/go-colorful v1.4.0 // indirect
 	github.com/mattn/go-runewidth v0.0.23 // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
-	github.com/otiai10/copy v1.14.1 // indirect
 	github.com/otiai10/mint v1.6.3 // indirect
 	github.com/pjbgf/sha1cd v0.6.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect

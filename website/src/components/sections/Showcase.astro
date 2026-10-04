@@ -1,31 +1,76 @@
-<div class="flex flex-col md:flex-row md:mb-0 mb-10 p-1">
-    <div class="md:mx-15 mx-auto my-2 md:my-12 w-[80%] md:w-200 rounded-2xl aspect-video bg-white"></div>
-    <div class="my-auto font-tagline mx-auto">
-        <h1 class="text-[12px] md:text-4xl md:w-85">
-            <span class="text-[15px] md:text-5xl">sculk-cli</span> takes care of <span class="italic underline h-20">your</span> datapacks for you.
-        </h1>
-    </div>
-</div>
+---
+// Real recordings of the CLI. They are produced by tools/record-showcase.sh,
+// which runs the actual `sculk` binary in a throwaway world and renders each
+// session to a GIF with tools/cast2gif.py. Re-run that script after changing
+// any command output to refresh them.
+//
+// The files live in public/showcase/ so the generator can overwrite them
+// without a rebuild of the asset pipeline.
+const slots = [
+    {
+        gif: '/showcase/libraries.gif',
+        alt: 'Recording of: sculk add id-system, merging its files into the project',
+        lead: 'takes care of',
+        emphasis: 'your',
+        tail: 'datapacks for you.',
+        side: 'left',
+    },
+    {
+        gif: '/showcase/init.gif',
+        alt: 'Recording of: sculk init creating load.json, tick.json and pack.mcmeta',
+        lead: 'makes initializing',
+        emphasis: 'your',
+        tail: 'datapacks easier.',
+        side: 'right',
+    },
+    {
+        gif: '/showcase/track.gif',
+        alt: 'Recording of: sculk list and the libraries.json it maintains',
+        lead: 'keeps track of',
+        emphasis: 'libraries',
+        tail: 'for you.',
+        side: 'left',
+    },
+] as const;
+---
 
-<div class="flex flex-col md:flex-row md:mb-0 mb-10 p-1">
-    <div class="hidden md:flex my-auto font-tagline mx-auto">
-        <h1 class="text-[12px] md:text-4xl md:w-85">
-            <span class="text-[15px] md:text-5xl">sculk-cli</span> makes initializing <span class="italic underline h-20">your</span> datapacks easier.
-        </h1>
-    </div>
-    <div class="md:mx-15 mx-auto my-2 md:my-12 w-[80%] md:w-200 rounded-2xl aspect-video bg-white"></div>
-    <div class="my-auto md:hidden font-tagline mx-auto">
-        <h1 class="text-[12px] md:text-4xl md:w-85">
-            <span class="text-[15px] md:text-5xl">sculk-cli</span> makes initializing <span class="italic underline h-20">your</span> datapacks easier.
-        </h1>
-    </div>
-</div>
+{slots.map((slot) => (
+    <div class="flex flex-col md:flex-row md:mb-0 mb-10 p-1 items-center">
+        {slot.side === 'right' && (
+            <div class="hidden md:flex my-auto font-tagline mx-auto">
+                <h2 class="text-[12px] md:text-4xl md:w-85 text-white">
+                    <span class="text-[15px] md:text-5xl">sculk-cli</span> {slot.lead}{' '}
+                    <span class="italic underline h-20">{slot.emphasis}</span> {slot.tail}
+                </h2>
+            </div>
+        )}
 
-<div class="flex flex-col md:flex-row md:mb-0 mb-10 p-1">
-    <div class="md:mx-15 mx-auto my-2 md:my-12 w-[80%] md:w-200 rounded-2xl aspect-video bg-white"></div>
-    <div class="my-auto font-tagline mx-auto">
-        <h1 class="text-[12px] md:text-4xl md:w-85">
-            <span class="text-[15px] md:text-5xl">sculk-cli</span> keeps track of <span class="italic underline h-20">libraries</span> for you.
-        </h1>
+        <div class="media md:mx-15 mx-auto my-2 md:my-12 w-[92%] md:w-200">
+            <img src={slot.gif} alt={slot.alt} loading="lazy" class="block w-full h-auto" />
+        </div>
+
+        <div class="my-auto font-tagline mx-auto">
+            <h2 class="text-[12px] md:text-4xl md:w-85 text-white">
+                <span class="text-[15px] md:text-5xl">sculk-cli</span> {slot.lead}{' '}
+                <span class="italic underline h-20">{slot.emphasis}</span> {slot.tail}
+            </h2>
+        </div>
     </div>
-</div>
+))}
+
+<style>
+    .media {
+        border-radius: 1rem;
+        overflow: hidden;
+        box-shadow:
+            0 10px 40px rgba(0, 0, 0, 0.6),
+            0 0 0 1px rgba(255, 255, 255, 0.08);
+        background: #0b0a12;
+        aspect-ratio: 810 / 392;
+    }
+    .media img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+    }
+</style>

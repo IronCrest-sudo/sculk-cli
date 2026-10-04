@@ -12,5 +12,11 @@ export default defineConfig({
     plugins: [tailwindcss()]
   },
 
+  // `astro dev`/`astro preview` are used behind proxies (Codespaces, e2b,
+  // ngrok, ...) whose hostname is not localhost, so accept any host there.
+  // The built site is static and unaffected by this.
+  server: { allowedHosts: true },
+  preview: { allowedHosts: true },
+
   integrations: [svelte(), icon(), iconset()]
 });

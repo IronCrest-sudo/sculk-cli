@@ -1,0 +1,21 @@
+---
+// A small shell-style code block with a copy button. `code` may contain
+// several lines separated by "\n".
+const { code } = Astro.props as { code: string };
+
+const lines = code.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
+---
+
+<div class="rounded-lg border border-white/10 bg-black/40 p-3">
+    <div class="flex items-start gap-2">
+        <pre class="flex-1 overflow-x-auto font-ui text-[11px] leading-relaxed text-emerald-300">{lines.map((l) => '$ ' + l).join('\n')}</pre>
+        <button
+            type="button"
+            data-copy={lines.join('\n')}
+            class="shrink-0 rounded px-2 py-0.5 font-ui text-[10px] text-white/40 transition-colors hover:bg-white/10 hover:text-white"
+            aria-label="Copy command"
+        >
+            <span data-copy-label>copy</span>
+        </button>
+    </div>
+</div>

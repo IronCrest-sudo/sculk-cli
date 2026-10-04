@@ -1,20 +1,24 @@
 {
   "name": "server",
   "version": "1.0.0",
-  "description": "",
+  "description": "sculk-cli API server: serves the library registry the website reads from.",
   "main": "src/app.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node --experimental-strip-types src/app.ts",
+    "dev": "node --watch --experimental-strip-types src/app.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run typecheck"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
   "dependencies": {
-    "fastify": "^5.12.5"
+    "fastify": "^5.12.5",
+    "dotenv": "^18.0.4"
   },
   "devDependencies": {
     "@types/node": "^26.6.3",
-    "dotenv": "^18.0.4"
+    "typescript": "^5.9.3"
   }
 }

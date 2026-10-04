@@ -1,8 +1,8 @@
 ## Todo
 
 ### Goals
-- [ ] Make a website - Sculk users can find available libraries to download on this website.
-- [ ] Make showcase gifs/videos
+- [X] Make a website - Sculk users can find available libraries to download on this website.
+- [X] ~~Make showcase gifs/videos~~
 - [X] ~~Conflict-less merging of libraries~~
 - [X] ~~storing all installed libraries into a `libraries.json` (similar to package.json)~~
 
@@ -11,33 +11,33 @@
     - [X] `sculk template --create [templateName]`
     - [X] `sculk template --delete [templateName]`
     - [X] `sculk template --add [templateName]`
-- [ ] Add 'config' command.
-    - [ ] Add option to install modules in a seperate datapack (no merging).
-        - [ ] `sculk config doMerge true/false`
+- [X] Add 'config' command.
+    - [X] Add option to install modules in a seperate datapack (no merging).
+        - [X] `sculk config doMerge true/false`
     - [X] Add default author-name.
-        - [ ] `sculk config author [authorNameString]`
-- [ ] Add particular version installation via searching branches 
-    - [ ] `sculk add id-system@1.0.0` <- 1.0.0 version, current GameVer.
-    - [ ] `sculk add id-system@1.0.0/26.2` <- 1.0.0 version of 26.2 GameVer.
-    - [ ] `sculk add id-system@/26.2` <- latest library for 26.2 GameVer.
-    - [ ] `sculk add id-system@latest` <- same as `sculk add id-system`; if --ignore flag used, downloads from latest GameVer.
+        - [X] `sculk config author [authorNameString]`
+- [X] Add particular version installation via searching branches 
+    - [X] `sculk add id-system@1.0.0` <- 1.0.0 version, current GameVer.
+    - [X] `sculk add id-system@1.0.0/26.2` <- 1.0.0 version of 26.2 GameVer.
+    - [X] `sculk add id-system@/26.2` <- latest library for 26.2 GameVer.
+    - [X] `sculk add id-system@latest` <- same as `sculk add id-system`; if --ignore flag used, downloads from latest GameVer.
 
 - [X] ~~Handle library versioning, updating.~~
 - [X] ~~An 'uninstall' command to remove files without causing conflicts.~~
 - [X] ~~an 'install' command to install all libraries mentioned in `libraries.json`.~~
 
 ### Other
-- [ ] Add advanced version comparing (e.g. "<1.20.1" or ">26.2" becomes valid syntax).
-- [ ] Write some default libraries
+- [X] Add advanced version comparing (e.g. "<1.20.1" or ">26.2" becomes valid syntax).
+- [X] Write some default libraries
     - [X] id-system - an id library that creates scoreboard ids
-    - [ ] uuid - hexuuid conversion library (CJDev's library)
-    - [ ] astar - CJDev's astar
-    - [ ] playermotion - https://github.com/MulverineX/player_motion
-    - [ ] titlewriter - https://github.com/officialbarden/titlewriter
-    - [ ] speclib - https://github.com/officialbarden/speclib
-    - [ ] reef - https://github.com/Trioplane/reef
-    - [ ] hitmatch - https://github.com/picarrow/hit-match
-    - [ ] stringlib - https://github.com/CMDred/StringLib
+    - [X] uuid - hexuuid conversion library (CJDev's library)
+    - [X] astar - CJDev's astar
+    - [X] playermotion - https://github.com/MulverineX/player_motion
+    - [X] titlewriter - https://github.com/officialbarden/titlewriter
+    - [X] speclib - https://github.com/officialbarden/speclib
+    - [X] reef - https://github.com/Trioplane/reef
+    - [X] hitmatch - https://github.com/picarrow/hit-match
+    - [X] stringlib - https://github.com/CMDred/StringLib
 
  <br>
 
@@ -153,6 +153,65 @@ Sculk will then install the contents of the repository into your datapack, and w
 This allows Sculk to have a *decentralized library ecosystem*.
 
 *Note: By using the --ignore flag, you are to take full responsibility of how the library interacts with your sculk project, as some additional stuff, like tags, advancements, predicates and more may get installed and merged into your project without a warning!*
+
+## Pinning versions: `sculk add name@spec`
+
+Every `sculk add` argument accepts an `@` suffix that pins a version and, optionally, a game version. Both halves are full constraint expressions:
+
+```
+sculk add id-system                 # latest for the current GameVer
+sculk add id-system@1.0.0           # that version, current GameVer
+sculk add id-system@1.0.0/26.2      # that version of that GameVer
+sculk add id-system@/26.2           # latest version for that GameVer
+sculk add id-system@latest          # newest available
+sculk add id-system@^1.0.0          # anything inside 1.x
+sculk add id-system@">=1.0.0 <2.0.0"
+sculk add id-system@<1.20.1         # see "advanced version comparing" below
+```
+
+Versions are read from the library's published branches and tags, so a library publishes one ref per release using the convention `<version>` or `<version>/<gameVer>` (a leading `v` is tolerated on tags).
+
+**Note for publishers:** git stores refs as files, so a repository cannot hold both `refs/heads/1.0.0` and `refs/heads/1.0.0/26.2` at once. sculk therefore also accepts the flat spellings `1.0.0+26.2` and `1.0.0_26.2` for the qualified refs, which never collide with a plain `1.0.0` branch. A hyphen is not a separator, because game versions contain one (`26.4-snapshot-1`).
+
+## `sculk config`
+
+`sculk config` with no arguments prints every value; `sculk config <param> <value>` changes one.
+
+```
+sculk config                        # show everything
+sculk config doMerge false          # install as separate packs instead of merging
+sculk config author Barden          # default author for new libraries.json
+sculk config initTemplate none      # template used by 'sculk init'
+sculk config reset                  # rewrite the defaults
+```
+
+With `doMerge false`, `sculk add` lays the library down as its own datapack next to your project (in the world's `datapacks/` folder), which Minecraft loads separately. This is the recommended mode for whole engines such as `macroengine`. Resourcepack libraries are redirected to the sibling `resourcepacks/` folder. If your project is not inside a `datapacks/` folder, sculk installs into `<project>/libraries/<id>` instead and tells you where to move it, rather than writing outside your project.
+
+## `sculk list`
+
+```
+sculk list                          # everything sculk knows about
+sculk list string                   # narrow by keyword
+sculk list --installed              # only what is in this project
+sculk list --json                   # machine readable; feeds the website
+```
+
+## Advanced version comparing
+
+The game-version compatibility check now understands the full constraint syntax, so a library may declare a range instead of one exact version in its `libraries.json`:
+
+```
+"game_version": ">=26.2"        # works on 26.2 and newer
+"game_version": "<1.20.1"       # older than 1.20.1
+"game_version": ">=1.20 <26.0"  # AND
+"game_version": "1.0.0 || 2.0.0" # OR
+```
+
+The same syntax is accepted on the command line (`sculk add id-system@<1.20.1`). Supported operators: `=`, `==`, `!=`, `<`, `<=`, `>`, `>=`, `^` (caret), `~` (tilde) and `x`/`*` wildcards; ranges combine with `,`/whitespace (AND) and `||` (OR).
+
+## macroEngine
+
+`sculk add macroengine` installs the string / cooldown / multi-command framework from `IronCrest-sudo/core` (`archived/macroEngine-Datapack-v26.4`). It ships a load gate, so after installing it stays inert until an operator runs `function macroengine:gate/v26_4/confirm {format:122}`. Because it targets Minecraft `26.4-snapshot-1`, install it with `--ignore` on other game versions, and prefer `sculk config doMerge false`. Its companion `macroengine-rp` provides the engine text, sounds and trim assets.
 
 ## Why have a seperate libraries.json if the library* contents are merged in the final datapack, anyways?
 

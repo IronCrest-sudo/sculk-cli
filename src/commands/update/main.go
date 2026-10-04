@@ -1,91 +1,121 @@
-// To update
-// Check if a newer version exists.
-// If it exists, uninstall the current version, and install the new version
+// To update:
+//  1. Check whether a newer version exists (using the shared version package,
+//     so ranges and pre-releases compare correctly).
+//  2. If it does, uninstall the current version and install the new one.
 package update
 
 import (
+	"os"
+	"strings"
+
 	"sculk-cli/src/commands/add"
+	"sculk-cli/src/commands/config"
 	"sculk-cli/src/commands/initProject/create"
 	"sculk-cli/src/commands/uninstall"
+	"sculk-cli/src/version"
 
 	"charm.land/log/v2"
-	"github.com/go-git/go-billy/v6"
 )
 
-func Main(args []string) {
-	
-	// check whether the user provided a specific identifier
-	identifier := args
-	
-	if len(identifier) > 0 {
-		for _, identifierString := range identifier {
-			updateInit(identifierString)
-		}
-	} else {
-
-		// get all identifiers from local /libraries.json:
-		libraryFile := add.ReadLocalLibrariesJson()
-		var libraryIdentifiers []string
-		for _, file := range libraryFile.Libraries {
-			libraryIdentifiers = append(libraryIdentifiers, file.Identifier)
-		}
-
-		// updateInit each of em:
-		for _, identifierString := range libraryIdentifiers {
-			updateInit(identifierString)
-		}
+func Main(args []string) error {
+	if _, err := os.Stat("libraries.json"); err != nil {
+		log.Printf("⚠ No libraries.json here - run 'sculk init' first.")
+		return err
 	}
-}
 
-// based on identifier
-func ExecuteupdateInit(libraryDotJson create.LibrariesDotJson, libraryIdentifier string, fs billy.Filesystem) {
+	identifiers := args
 
-	isMismatch, oldVersion, newVersion := CheckVersionMismatch(libraryDotJson, libraryIdentifier, fs)	
-	if isMismatch {
-		log.Printf("🍁 Library '%s' is outdated. Updating [%s -> %s] ...", libraryIdentifier, oldVersion, newVersion);
-
-		// updateInit library and updateInit in libraries.json:
-		// uninstall, install
-		uninstall.UninstallLibrary(libraryIdentifier)
-		add.InstallLibraries(libraryIdentifier, false)
-		
-		// log
-		log.Printf("🍀 Library '%s' has been updateInitd [%s -> %s].", libraryIdentifier, oldVersion, newVersion);
-	} else {
-		log.Printf("🍀 Library '%s' is up-to-date (v. %s).", libraryIdentifier, oldVersion);
-	}
-}
-
-func CheckVersionMismatch(libraryDotJson create.LibrariesDotJson, libraryIdentifier string, fs billy.Filesystem) (isMismatch bool, oldVersion string, newVersion string) {
-	
-	existingLibraryData := add.ReadLocalLibrariesJson()
-	sourceLibraryData := libraryDotJson
-	var installedLibraryMetaData create.Library
-	
-	// find library with identifier.
-	for i := range existingLibraryData.Libraries {
-		if existingLibraryData.Libraries[i].Identifier == libraryIdentifier {
-			// once the identifier metadata is found in local libraries.json, store it in variable to compare later.
-			installedLibraryMetaData = existingLibraryData.Libraries[i]
-			break
+	// No identifiers given -> update everything in libraries.json.
+	if len(identifiers) == 0 {
+		for _, lib := range add.ReadLocalLibrariesJson().Libraries {
+			identifiers = append(identifiers, lib.Identifier)
+		}
+		if len(identifiers) == 0 {
+			log.Printf("ℹ Nothing to update, libraries.json is empty.")
+			return nil
 		}
 	}
 
-	// check if there's version mismatch
-	if sourceLibraryData.Version == installedLibraryMetaData.Version {
-		return false, installedLibraryMetaData.Version, sourceLibraryData.Version
-	} else { return true, installedLibraryMetaData.Version, sourceLibraryData.Version }
+	var failed []string
+	for _, identifier := range identifiers {
+		if err := updateOne(identifier); err != nil {
+			log.Printf("⚠ Could not update '%s': %v", identifier, err)
+			failed = append(failed, identifier)
+		}
+	}
+
+	if len(failed) > 0 {
+		return errJoin(failed)
+	}
+	return nil
 }
 
-func updateInit(libraryIdentifier string) {
-	var libraryDotJson create.LibrariesDotJson
-	
-	// get source code for that library from git
-	_, libraryDotJson, fs, err := add.GetLibrarySource(libraryIdentifier)
+type joinError struct{ items []string }
+
+func (e joinError) Error() string  { return "failed to update: " + strings.Join(e.items, ", ") }
+func errJoin(items []string) error { return joinError{items} }
+
+// updateOne brings a single library up to date.
+func updateOne(libraryIdentifier string) error {
+	installedRecord, installed := add.FindInstalled(libraryIdentifier)
+
+	// Re-resolve using the same pinned ref the user asked for, so that
+	// `sculk add lib@1.0.0` stays on the 1.0.0 line and only picks up
+	// revisions published under that ref.
+	spec, err := add.ParseSpec(libraryIdentifier)
 	if err != nil {
-		return
+		return err
+	}
+	if installed && installedRecord.Ref != "" {
+		spec, err = add.ParseSpec(libraryIdentifier + "@" + installedRecord.Ref)
+		if err != nil {
+			return err
+		}
 	}
 
-	// put src-code's libraries.json, identifier and fs in execupdateInit
-	ExecuteupdateInit(libraryDotJson, libraryIdentifier, fs)
+	resolved, err := add.Resolve(spec)
+	if err != nil {
+		return err
+	}
+	resolved.Block = add.VerifyLibraryIntegrity(libraryIdentifier)
+
+	newVersion := resolved.Meta.Version
+	oldVersion := "0.0.0"
+	if installed {
+		oldVersion = installedRecord.Version
+	}
+
+	// A newer source version, or a first-time record, both count as work.
+	isOutdated := !installed || version.CompareStrings(newVersion, oldVersion) > 0
+
+	if !isOutdated {
+		log.Printf("🍀 Library '%s' is up-to-date (v. %s).", libraryIdentifier, newVersion)
+		return nil
+	}
+
+	log.Printf("🍁 Library '%s' is outdated. Updating [%s -> %s] ...", libraryIdentifier, oldVersion, newVersion)
+
+	if installed {
+		if err := uninstall.UninstallLibrary(libraryIdentifier); err != nil {
+			return err
+		}
+	}
+
+	if err := add.InstallLibrary(spec, false); err != nil {
+		return err
+	}
+
+	log.Printf("🍀 Library '%s' has been updated [%s -> %s].", libraryIdentifier, oldVersion, newVersion)
+	return nil
+}
+
+// InstallModeOf is exposed so callers can report how a library is laid down.
+func InstallModeOf(record create.Library) string {
+	if record.Install != "" {
+		return record.Install
+	}
+	if config.ShouldMerge() {
+		return create.InstallMerge
+	}
+	return create.InstallSeparate
 }

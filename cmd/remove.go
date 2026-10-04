@@ -4,8 +4,8 @@ Copyright © 2026 BARDEN <theofficialbarden@gmail.com>
 package cmd
 
 import (
-	"sculk-cli/src/commands/uninstall"
 	"github.com/spf13/cobra"
+	"sculk-cli/src/commands/uninstall"
 )
 
 // removeCmd represents the remove command
@@ -15,9 +15,8 @@ var removeCmd = &cobra.Command{
 	Args:  cobra.MinimumNArgs(1),
 	Long: `The remove command requires users to input specific libraries they want removed from their project,
 which is essential in-order to not accidently uninstall all libraries. Hence, this command works as a safe alternative to 'uninstall'.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		// Command Execution
-		uninstall.Main(args)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return uninstall.Main(args)
 	},
 }
 

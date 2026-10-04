@@ -4,7 +4,7 @@ package add
 // 1. Clone the "Github Repo" into memory
 // 2. Walk through all the files and merge them one by one
 
-func Main(ignoreVersionMismatch bool, args []string) error { 
+func Main(ignoreVersionMismatch bool, args []string) error {
 
 	for i := range args {
 		// check if its already installed

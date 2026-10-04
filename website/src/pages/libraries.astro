@@ -1,19 +1,16 @@
 ---
-import {Icon} from 'astro-icon/components';
 import Logo from '../components/UI/Logo.astro'
-import CLI from '../components/UI/CLI.svelte'
+import LibraryCard from '../components/UI/LibraryCard.astro';
+import CodeBlock from '../components/UI/CodeBlock.astro';
 import Layout from '../layouts/Layout.astro';
+import { libraries } from '../data/libraries';
 
 // images
 import sculkcli from '../assets/images/typography/sculk-cli.png'
 import tagline from '../assets/images/typography/tagline.png'
 import taglinemobile from '../assets/images/typography/tagline-mobile.png'
 
-const optimizedImages = {
-    sculkcli,
-    tagline,
-    taglinemobile
-}
+const optimizedImages = { sculkcli, tagline, taglinemobile }
 
 const links = [
     {label: "Docs", "href": "/docs"},
@@ -21,12 +18,15 @@ const links = [
     {label: "Links", "href": "/links"},
 ]
 
+const datapacks = libraries.filter(l => l.kind === 'datapack')
+const resourcepacks = libraries.filter(l => l.kind === 'resourcepack')
 ---
 
-<Layout title="sculk-cli">
+<Layout title="libraries | sculk-cli">
     <div class="wallpaper">
-        <div class="flex flex-col min-h-screen">
-            <div class="flex flex-col md:flex-row md:mt-15">
+        <div class="flex flex-col min-h-screen px-5 md:px-12 pb-24">
+
+            <div class="flex flex-col md:flex-row md:mt-10">
                 <div class="mb-5 flex gap-10">
                     <Logo images={optimizedImages}/>
                 </div>
@@ -41,11 +41,138 @@ const links = [
                 </div>
             </div>
 
-            <!-- <div class="m-auto">
-                <CLI />
-            </div> -->
+            <main class="w-full max-w-6xl mx-auto mt-10 md:mt-20">
+                <h1 class="font-tagline text-3xl md:text-6xl text-white">Libraries</h1>
+                <p class="mt-4 font-ui text-sm md:text-base text-white/70 max-w-2xl">
+                    Every library <span class="text-white">sculk</span> knows how to install. This list is generated
+                    straight from the CLI registry, so anything here works with
+                    <code class="text-purple-300">sculk add &lt;identifier&gt;</code>.
+                </p>
+
+                <div class="mt-8 flex flex-col sm:flex-row gap-4 items-stretch sm:items-center">
+                    <input
+                        id="lib-filter"
+                        type="search"
+                        placeholder="Filter by name, author or keyword..."
+                        autocomplete="off"
+                        class="font-ui w-full sm:max-w-md bg-white/5 border border-white/15 rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-white/40 outline-none focus:border-purple-400"
+                    />
+                    <span id="lib-count" class="font-ui text-xs text-white/50 whitespace-nowrap"></span>
+                    <span id="lib-live" class="font-ui text-xs text-emerald-400/80 whitespace-nowrap"></span>
+                </div>
+
+                <section class="mt-10">
+                    <h2 class="font-tagline text-xl md:text-3xl text-white">Datapacks</h2>
+                    <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-lib-grid>
+                        {datapacks.map(lib => <LibraryCard lib={lib} />)}
+                    </div>
+                </section>
+
+                {resourcepacks.length > 0 && (
+                    <section class="mt-12">
+                        <h2 class="font-tagline text-xl md:text-3xl text-white">Resource packs</h2>
+                        <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-lib-grid>
+                            {resourcepacks.map(lib => <LibraryCard lib={lib} />)}
+                        </div>
+                    </section>
+                )}
+
+                <section class="mt-16 border-t border-white/10 pt-8">
+                    <h2 class="font-tagline text-xl md:text-3xl text-white">Installing</h2>
+                    <div class="mt-5 grid gap-6 md:grid-cols-2 font-ui text-sm text-white/70">
+                        <div>
+                            <p class="text-white mb-2">Merge into your project</p>
+                            <CodeBlock code={"sculk config doMerge true\nsculk add id-system"} />
+                            <p class="mt-3">The library's files are merged into the pack you are standing in, and its
+                                <code class="text-purple-300">load.json</code> / <code class="text-purple-300">tick.json</code>
+                                entries are added without duplicates.</p>
+                        </div>
+                        <div>
+                            <p class="text-white mb-2">Install as a separate pack</p>
+                            <CodeBlock code={"sculk config doMerge false\nsculk add macroengine --ignore"} />
+                            <p class="mt-3">The library lands beside your project as its own datapack, which is what
+                                Minecraft loads separately. Recommended for whole engines such as
+                                <code class="text-purple-300">macroengine</code>.</p>
+                        </div>
+                        <div>
+                            <p class="text-white mb-2">Pin a version</p>
+                            <CodeBlock code={"sculk add id-system@1.0.0\nsculk add id-system@1.0.0/26.2\nsculk add id-system@/26.2\nsculk add id-system@^1.0.0"} />
+                        </div>
+                        <div>
+                            <p class="text-white mb-2">Share a project</p>
+                            <CodeBlock code="sculk install" />
+                            <p class="mt-3">Reproduces every library recorded in
+                                <code class="text-purple-300">libraries.json</code>, at the recorded versions and in the
+                                recorded layout.</p>
+                        </div>
+                    </div>
+                </section>
+            </main>
         </div>
-
     </div>
-
 </Layout>
+
+<script>
+    // Client-side filtering plus an optional live refresh from the sculk API.
+    import { fetchLibraries } from '../data/libraries';
+
+    const input = document.getElementById('lib-filter') as HTMLInputElement | null;
+    const countEl = document.getElementById('lib-count');
+    const liveEl = document.getElementById('lib-live');
+
+    function updateCount() {
+        if (!countEl) return;
+        const total = document.querySelectorAll('[data-lib-card]').length;
+        const shown = document.querySelectorAll('[data-lib-card]:not([hidden])').length;
+        countEl.textContent = total === shown
+            ? `${total} libraries`
+            : `${shown} of ${total} libraries`;
+    }
+
+    function applyFilter(term: string) {
+        const needle = term.trim().toLowerCase();
+        document.querySelectorAll('[data-lib-card]').forEach((card) => {
+            const el = card as HTMLElement;
+            const haystack = (el.dataset.search ?? '').toLowerCase();
+            el.hidden = needle !== '' && !haystack.includes(needle);
+        });
+        updateCount();
+    }
+
+    input?.addEventListener('input', () => applyFilter(input.value));
+    applyFilter('');
+
+    // Copy-to-clipboard for the install commands.
+    document.querySelectorAll('[data-copy]').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+            const code = (btn as HTMLElement).dataset.copy ?? '';
+            try {
+                await navigator.clipboard.writeText(code);
+                const label = btn.querySelector('[data-copy-label]');
+                if (label) {
+                    const original = label.textContent;
+                    label.textContent = 'copied';
+                    setTimeout(() => { label.textContent = original; }, 1200);
+                }
+            } catch {
+                /* clipboard unavailable - the command is still selectable */
+            }
+        });
+    });
+
+    // If a sculk API server is reachable on this origin, refresh the listing.
+    // Without one the static, build-time data stays on screen.
+    fetchLibraries().then((entries) => {
+        if (!entries || !liveEl) return;
+        liveEl.textContent = `live listing: ${entries.length} libraries`;
+        const known = new Set(
+            Array.from(document.querySelectorAll('[data-lib-card]')).map(
+                (c) => (c as HTMLElement).dataset.identifier,
+            ),
+        );
+        const extra = entries.filter((e) => !known.has(e.identifier));
+        if (extra.length > 0) {
+            liveEl.textContent += ` (+${extra.length} newer than this build)`;
+        }
+    });
+</script>
