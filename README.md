@@ -48,7 +48,7 @@ Not sure about a command? `sculk --help` and `sculk <command> --help` list every
         - [X] `sculk config doMerge true/false`
     - [X] Add default author-name.
         - [X] `sculk config author [authorNameString]`
-- [X] Add particular version installation via searching branches 
+- [X] Add particular version installation via searching branches
     - [X] `sculk add id-system@1.0.0` <- 1.0.0 version, current GameVer.
     - [X] `sculk add id-system@1.0.0/26.2` <- 1.0.0 version of 26.2 GameVer.
     - [X] `sculk add id-system@/26.2` <- latest library for 26.2 GameVer.
