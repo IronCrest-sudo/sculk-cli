@@ -1,15 +1,12 @@
 /*
 Copyright © 2026 BARDEN <theofficialbarden@gmail.com>
-
 */
 package cmd
 
 import (
-	"os"
 	"github.com/spf13/cobra"
+	"os"
 )
-
-
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -40,5 +37,3 @@ func init() {
 	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.sculk-cli.yaml)")
 
 }
-
-

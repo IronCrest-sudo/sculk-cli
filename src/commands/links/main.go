@@ -1,7 +1,6 @@
 package links
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/savioxavier/termlink"
@@ -25,26 +24,23 @@ func Main(args []string) error {
 		fmt.Printf("\n\n")
 		return nil
 	}
-	
+
 	// iterate through provided arguments and provide links
 	for i := range len(providers) {
 		providerName := providers[i]
 		switch providerName {
-			case "github":
-				fmt.Println(termlink.Link("🔗 Github", github, true))
-			case "website":
-				fmt.Println(termlink.Link("🌐 Website", website, true))
-			case "libraries":
-				fmt.Println(termlink.Link("🗃  Libraries", libraries, true))
-			case "discord":
-				fmt.Println(termlink.Link("💬 Discord", discord, true))
-			default:
-				error := "No Provider '" + providerName + "' found"
-				return errors.New(error)
+		case "github":
+			fmt.Println(termlink.Link("🔗 Github", github, true))
+		case "website":
+			fmt.Println(termlink.Link("🌐 Website", website, true))
+		case "libraries":
+			fmt.Println(termlink.Link("🗃  Libraries", libraries, true))
+		case "discord":
+			fmt.Println(termlink.Link("💬 Discord", discord, true))
+		default:
+			return fmt.Errorf("no provider '%s' found", providerName)
 		}
 	}
 
 	return nil
 }
-
-

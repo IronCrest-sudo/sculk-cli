@@ -9,7 +9,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-
 // linksCmd represents the links command
 var linksCmd = &cobra.Command{
 	Use:   "links [...providers]?",
